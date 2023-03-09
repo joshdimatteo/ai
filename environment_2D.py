@@ -6,19 +6,26 @@ import os
 class Eco:
     def __init__(self, width, height):
 
-        # Creatures are represented with a 1. Food is represented with a 2. Blank is 0.
-        self.board = [[0 for _ in range(width)] for _ in range(height)]
+        # All blank spaces are marked as 0. Anything else is food, and it has a value from 1 to 10.
+        self.bounds = (width, height)
         self.creatures = []
+        self.food = []
 
     def spawn(self):
         self.creatures.append(
             self.Creature(
-                random.randint(0, len(self.board[0])),
-                random.randint(0, len(self.board))
+                random.randint(0, self.bounds[0]),
+                random.randint(0, self.bounds[1]),
+                100
             )
         )
 
     def print(self):
+        # Marks all the creature's locations
+        board = [[0 for w in range(self.bounds[0])] for h in range(len(self.bounds[1]))]
+        for creature in self.creatures:
+            board[creature.location[1]][creature.location[0]] = 1
+
         print('┏' + '━' * len(self.board[0]) * 2 + '┓')
         for row in range(len(self.board)):
             print('┃', end='')
@@ -26,29 +33,24 @@ class Eco:
                 if self.board[row][column] == 0:
                     print(' ', end=' ')
                 elif self.board[row][column] == 1:
-                    print('█', end=' ')
+                    print('■', end=' ')
+                else:
+                    print(' ', end=' ')
             print('┃')
         print('┗' + '━' * len(self.board[0]) * 2 + '┛')
-
-    def refresh_board(self):
-
-        # Marks all the creature's locations
-        self.board = [[0 for w in range(len(self.board[0]))] for h in range(len(self.board))]
-        for creature in self.creatures:
-            self.board[creature.location[1]][creature.location[0]] = 1
-
-        # Randomly generates food (can't overlap with a creature)
 
     def refresh_creatures(self):
         for creature in self.creatures:
 
             # Gets the creature's position updated.
             creature.refresh()
-            creature.bind(len(self.board[0]), len(self.board))
+            creature.bind(self.bounds[0]), len(self.bounds[1])
 
-            # Checks if the creature is overlapping with food. Food gives random
-            if self.board[creature.location[1]][creature.location[0]] == 2:
-                creature.feed()
+            # Checks if the creature is overlapping with food. If so, feed the creature and delete the food.
+            for food in self.food:
+                if food.location == creature.location:
+                    creature.feed(food.value)
+                    self.food.remove(food)
 
     def main(self):
         while True:
@@ -66,9 +68,9 @@ class Eco:
                 break
 
     class Creature:
-        def __init__(self, x, y):
+        def __init__(self, x, y, energy):
             self.location = [x, y]
-            self.energy = 10000  # Needs energy to move.
+            self.energy = energy  # Needs energy to move.
 
         def feed(self, amount):
             self.energy += amount
@@ -98,6 +100,11 @@ class Eco:
 
         def refresh(self):
             self.move(random.randint(1, 4))
+
+    class Food:
+        def __init__(self, x, y, value):
+            self.location = [x, y]
+            self.value = value
 
 
 eco = Eco(25, 10)
