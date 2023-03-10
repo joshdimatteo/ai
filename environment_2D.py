@@ -14,8 +14,8 @@ class Eco:
     def spawn(self):
         self.creatures.append(
             self.Creature(
-                random.randint(0, self.bounds[0]),
-                random.randint(0, self.bounds[1]),
+                random.randint(0, self.bounds[0] - 1),
+                random.randint(0, self.bounds[1] - 1),
                 10000
             )
         )
@@ -29,13 +29,13 @@ class Eco:
         for food in self.food:
             board[food.location[1]][food.location[0]] = food.value
 
-        print('┏' + '━' * len(board[0]) * 2 + '┓')
+        print('┏' + '━' * (self.bounds[0] + 1) * 2 + '┓')
         for row in range(self.bounds[1]):
-            print('┃', end='')
+            print('┃ ', end='')
             for column in range(self.bounds[0]):
                 print(board[row][column], end=' ')
-            print('┃')
-        print('┗' + '━' * len(board[0]) * 2 + '┛')
+            print(' ┃')
+        print('┗' + '━' * (self.bounds[0] + 1) * 2 + '┛')
 
     def refresh_creatures(self):
         for creature in self.creatures:
@@ -60,7 +60,7 @@ class Eco:
                     os.system('cls')
                     self.print()
                     self.refresh_creatures()
-                    sleep(0.1)
+                    sleep(0.01)
             elif inp == "2":
                 break
 
@@ -96,8 +96,6 @@ class Eco:
                 self.location[0] += width
 
         def refresh(self):
-
-
             self.move(random.randint(1, 4))
 
     class Food:
