@@ -1,24 +1,50 @@
+from random import random, randint
+from copy import deepcopy
 from time import sleep
-import random
 import os
 
 
 class Eco:
-    def __init__(self, width, height):
-
-        # All blank spaces are marked as 0. Anything else is food, and it has a value from 1 to 10.
+    def __init__(self, width=10, height=10):
         self.bounds = (width, height)
+
+        # All creatures and food
         self.creatures = []
         self.food = []
 
-    def spawn(self):
-        self.creatures.append(
-            self.Creature(
-                random.randint(0, self.bounds[0] - 1),
-                random.randint(0, self.bounds[1] - 1),
-                10000
+        # Values for se = spawn energy, fv = food value (range)
+        self.se = 10
+        self.fv = (9, 9)
+
+        # Spawn rate and gen rate for creatures and food respectively
+        self.sr = 0.05
+        self.gr = 0.25
+
+        # Split rate and entropy for AI training.
+        self.rr = 0.1
+        self.entropy = 0.1
+
+    # Spawns creature
+    def spawn(self, amount=1):
+        for _ in range(amount):
+            self.creatures.append(
+                self.Creature(
+                    randint(0, self.bounds[0] - 1),
+                    randint(0, self.bounds[1] - 1),
+                    self.se
+                )
             )
-        )
+
+    # Generates food
+    def generate(self, amount=1):
+        for _ in range(amount):
+            self.food.append(
+                self.Food(
+                    randint(0, self.bounds[0] - 1),
+                    randint(0, self.bounds[1] - 1),
+                    randint(self.fv[0], self.fv[1])
+                )
+            )
 
     def print(self):
 
@@ -50,16 +76,42 @@ class Eco:
                     creature.feed(food.value)
                     self.food.remove(food)
 
+            # Checks the energy of the creature. If it's out, kill it.
+            if creature.energy == 0:
+                self.creatures.remove(creature)
+
     def main(self):
         while True:
+
+            # Gets input
             print("[1] Run\n[2] Break")
             inp = input('\n[>] Enter your choice: ')
 
+            # Runs simulation
             if inp == "1":
                 for n in range(int(input("[>] Enter frames to run: "))):
+
+                    # Prints board
                     os.system('cls')
                     self.print()
+
+                    # Refreshes creatures
                     self.refresh_creatures()
+
+                    # Adds food
+                    if random() <= self.gr:
+                        self.generate()
+
+                    # Spawns creatures
+                    if random() <= self.sr:
+                        self.spawn()
+
+                    # Splits creatures
+                    for creature in self.creatures:
+                        if random() <= self.rr:
+                            creature.energy = int(creature.energy / 2)
+                            self.creatures.append(deepcopy(creature))
+
                     sleep(0.01)
             elif inp == "2":
                 break
@@ -96,17 +148,14 @@ class Eco:
                 self.location[0] += width
 
         def refresh(self):
-            self.move(random.randint(1, 4))
+            self.move(randint(1, 4))
 
     class Food:
-        def __init__(self, x, y, value):
+        def __init__(self, x: int, y: int, value):
             self.location = [x, y]
             self.value = value
 
 
 eco = Eco(25, 10)
-print(f'[+] Eco created. Bounds: ({eco.bounds[0]}, {eco.bounds[1]})')
 eco.spawn()
-
-print(f'[+] Creature added. Location: ({eco.creatures[0].location[0]}, {eco.creatures[0].location[1]})\n')
 eco.main()
