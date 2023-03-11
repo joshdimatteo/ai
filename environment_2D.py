@@ -3,6 +3,9 @@ from copy import deepcopy
 from time import sleep
 import os
 
+# Inputs: Vision, Energy
+# Outputs: Split, Direction
+
 
 class Eco:
     def __init__(self, width=10, height=10):
@@ -18,10 +21,10 @@ class Eco:
 
         # Spawn rate and gen rate for creatures and food respectively
         self.sr = 0.05
-        self.gr = 0.25
+        self.gr = 0.5
 
         # Split rate and entropy for AI training.
-        self.rr = 0.1
+        self.rr = 0.01
         self.entropy = 0.1
 
     # Spawns creature
@@ -112,7 +115,7 @@ class Eco:
                             creature.energy = int(creature.energy / 2)
                             self.creatures.append(deepcopy(creature))
 
-                    sleep(0.01)
+                    sleep(0.1)
             elif inp == "2":
                 break
 
@@ -156,6 +159,6 @@ class Eco:
             self.value = value
 
 
-eco = Eco(25, 10)
+eco = Eco(100, 10)
 eco.spawn()
 eco.main()
