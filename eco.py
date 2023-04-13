@@ -2,6 +2,7 @@ from random import random, randint
 from copy import deepcopy
 from time import sleep
 import os
+import ai
 
 # Inputs: Vision, Energy
 # Outputs: Split, Direction
@@ -159,6 +160,9 @@ class Eco:
             self.value = value
 
 
-eco = Eco(100, 10)
-eco.spawn()
-eco.main()
+# eco = Eco(100, 10)
+# eco.spawn()
+# eco.main()
+
+net = ai.Network(2, 5, 5, 4)
+print(net)
