@@ -29,25 +29,40 @@ def p_relu(a, n):
 class Network:
     def __init__(self, *layers):
         layers = list(layers)
-        layers.append(0)
-        self.layers = [[self.Neuron(layers[layer + 1]) for _ in range(layers[layer])] for layer in range(len(layers) - 1)]
+
+        # Creates layers. 2D Array of neurons. Each neuron is passed in the previous layer as a parameter.
+        self.layers = [[self.Neuron(layers[i - 1]) for _ in range(layers[i])] for i in range(1, len(layers))]
 
     def __str__(self):
         out = ""
         for layer in self.layers:
-            out += str([len(neuron.outputs) for neuron in layer]) + "\n"
+            out += str([len(neuron.weights) for neuron in layer]) + "\n"
         return out
+
+    def run(self, inputs):
+        values = list(inputs)
+
+        # Goes through each layer and in order passes the values to each neuron and records them.
+        for layer in self.layers:
+            new_values = []
+
+            for neuron in layer:
+                new_values.append(neuron.calculate(values))
+
+            values = new_values
+
+        return values
 
     class Neuron:
 
-        # Takes the length of the next layer to determine how many weights it needs
-        def __init__(self, next_layer):
+        # Takes the length of the previous layer to determine how many weights it needs
+        def __init__(self, prev_layer):
             self.bias = 0
-            self.outputs = [1 for _ in range(next_layer)]
+            self.weights = [1 for _ in range(prev_layer)]
 
-        # Takes a dictionary of values and corresponding weights
+        # Takes a list of values and applies input weights
         def calculate(self, inputs):
             out = 0
-            for value in inputs.keys:
-                out += value * inputs[value]
+            for i in range(len(inputs)):
+                out += inputs[i] * self.weights[i]
             return l_relu(out + self.bias)

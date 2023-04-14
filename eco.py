@@ -164,5 +164,7 @@ class Eco:
 # eco.spawn()
 # eco.main()
 
-net = ai.Network(2, 5, 5, 4)
+# net = ai.Network(2, 2, 10, 10, 5, 5, 4)
+net = ai.Network(2, 2)
 print(net)
+print(net.run([1, 2]))
