@@ -8,6 +8,19 @@ import ai
 # Outputs: Split, Direction
 
 
+def bind(x1, y1, x2, y2):
+    if y1 > y2 - 1:
+        y1 -= y2
+    if y1 < 0:
+        y1 += y2
+    if x1 > x2 - 1:
+        x1 -= x2
+    if x1 < 0:
+        x1 += x2
+
+    return [x1, y1]
+
+
 class Eco:
     def __init__(self, width=10, height=10):
         self.bounds = (width, height)
@@ -16,9 +29,10 @@ class Eco:
         self.creatures = []
         self.food = []
 
-        # Values for se = spawn energy, fv = food value (range)
+        # Values for se = spawn energy, fv = food value (range), vi = vision radius
         self.se = 10
         self.fv = (9, 9)
+        self.vi = 3
 
         # Spawn rate and gen rate for creatures and food respectively
         self.sr = 0.05
@@ -72,7 +86,7 @@ class Eco:
 
             # Gets the creature's position updated.
             creature.refresh()
-            creature.bind(self.bounds[0], self.bounds[1])
+            creature.location = bind(creature.location[0], creature.location[1], self.bounds[0], self.bounds[1])
 
             # Checks if the creature is overlapping with food. If so, feed the creature and delete the food.
             for food in self.food:
@@ -121,9 +135,27 @@ class Eco:
                 break
 
     class Creature:
-        def __init__(self, x: int, y: int, energy):
+
+        # Vision is the radius of its vision.
+        def __init__(self, x: int, y: int, energy: int, radius: int):
             self.location = [x, y]
             self.energy = energy  # Needs energy to move.
+
+            # 2D array with coordinates for vision.
+            self.vision = []
+
+            # For each row in vision.
+            for i in range(radius * 2 + 1):
+
+                # Adds a layer to vision and sets y value.
+                self.vision.append([])
+                y = -i + radius
+
+                # Amount of columns is calculated from -|2(x - rad)| + 2(rad) + 1
+                for j in range(-abs(2 * i - 2 * radius) + 2 * radius + 1):
+                    self.vision[i].append((j + (abs(y) - radius), y))
+
+            self.net = ai.Network()
 
         def feed(self, amount):
             self.energy += amount
@@ -141,15 +173,6 @@ class Eco:
                 self.energy -= 1
 
         # If the creature is out of bounds, it keeps its position but puts the actual coordinates in bounds.
-        def bind(self, width, height):
-            if self.location[1] > height - 1:
-                self.location[1] -= height
-            if self.location[1] < 0:
-                self.location[1] += height
-            if self.location[0] > width - 1:
-                self.location[0] -= width
-            if self.location[0] < 0:
-                self.location[0] += width
 
         def refresh(self):
             self.move(randint(1, 4))
@@ -160,11 +183,11 @@ class Eco:
             self.value = value
 
 
-# eco = Eco(100, 10)
-# eco.spawn()
-# eco.main()
+eco = Eco(100, 10)
+eco.spawn()
+eco.main()
 
-# net = ai.Network(2, 2, 10, 10, 5, 5, 4)
-net = ai.Network(2, 2)
-print(net)
-print(net.run([1, 2]))
+# # net = ai.Network(2, 2, 10, 10, 5, 5, 4)
+# net = ai.Network(2, 2)
+# print(net)
+# print(net.run([1, 2]))
