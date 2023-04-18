@@ -1,3 +1,6 @@
+import random
+
+
 def step(n):
     if n < 0:
         return 0
@@ -51,7 +54,14 @@ class Network:
 
             values = new_values
 
+        # Puts values as 1 or 0 and outputs them.
         return values
+
+    def randomize(self, entropy):
+        for layer in self.layers:
+            for neuron in layer:
+                for weight in range(len(neuron.weights)):
+                    neuron.weights[weight] += (random.random() - 0.5) * entropy
 
     class Neuron:
 

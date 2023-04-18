@@ -8,6 +8,7 @@ import ai
 # Outputs: Split, Direction
 
 
+# x1 and y1 are the current coordinates and x2 and y2 are the bounds.
 def bind(x1, y1, x2, y2):
     if y1 > y2 - 1:
         y1 -= y2
@@ -18,10 +19,11 @@ def bind(x1, y1, x2, y2):
     if x1 < 0:
         x1 += x2
 
-    return [x1, y1]
+    return x1, y1
 
 
 class Eco:
+
     def __init__(self, width=10, height=10):
         self.bounds = (width, height)
 
@@ -31,25 +33,37 @@ class Eco:
 
         # Values for se = spawn energy, fv = food value (range), vi = vision radius
         self.se = 10
-        self.fv = (9, 9)
-        self.vi = 3
+        self.fv = (1, 9)
+        self.vi = 4
 
         # Spawn rate and gen rate for creatures and food respectively
         self.sr = 0.05
         self.gr = 0.5
 
-        # Split rate and entropy for AI training.
-        self.rr = 0.01
+        # Entropy for AI training.
         self.entropy = 0.1
+
+    # Gets info on a position. Creature = -1, Blank = 0, Food = Range
+    def get(self, x, y):
+        x, y = bind(x, y, self.bounds[0], self.bounds[1])
+
+        # Checks for creatures
+        for creature in self.creatures:
+            if creature.location == [x, y]:
+                return -1
+        for food in self.food:
+            if food.location == [x, y]:
+                return food.value
+        return 0
 
     # Spawns creature
     def spawn(self, amount=1):
         for _ in range(amount):
             self.creatures.append(
-                self.Creature(
+                Creature(
                     randint(0, self.bounds[0] - 1),
                     randint(0, self.bounds[1] - 1),
-                    self.se
+                    self
                 )
             )
 
@@ -57,7 +71,7 @@ class Eco:
     def generate(self, amount=1):
         for _ in range(amount):
             self.food.append(
-                self.Food(
+                Food(
                     randint(0, self.bounds[0] - 1),
                     randint(0, self.bounds[1] - 1),
                     randint(self.fv[0], self.fv[1])
@@ -134,60 +148,90 @@ class Eco:
             elif inp == "2":
                 break
 
-    class Creature:
 
-        # Vision is the radius of its vision.
-        def __init__(self, x: int, y: int, energy: int, radius: int):
-            self.location = [x, y]
-            self.energy = energy  # Needs energy to move.
+class Creature:
 
-            # 2D array with coordinates for vision.
-            self.vision = []
+    # Vision is the radius of its vision.
+    def __init__(self, x: int, y: int, env: Eco):
+        self.location = [x, y]
+        self.energy = env.se  # Needs energy to move.
 
-            # For each row in vision.
-            for i in range(radius * 2 + 1):
+        # 2D array with coordinates for vision.
+        self.vision = []
+        self.env = env
 
-                # Adds a layer to vision and sets y value.
-                self.vision.append([])
-                y = -i + radius
+        # For each row in vision.
+        for i in range(env.vi * 2 + 1):
 
-                # Amount of columns is calculated from -|2(x - rad)| + 2(rad) + 1
-                for j in range(-abs(2 * i - 2 * radius) + 2 * radius + 1):
-                    self.vision[i].append((j + (abs(y) - radius), y))
+            # Adds a layer to vision and sets y value.
+            self.vision.append([])
+            y = -i + env.vi
 
-            self.net = ai.Network()
+            # Amount of columns is calculated from -|2(x - rad)| + 2(rad) + 1
+            for j in range(-abs(2 * i - 2 * env.vi) + 2 * env.vi + 1):
 
-        def feed(self, amount):
-            self.energy += amount
+                if (j + (abs(y) - env.vi), y) != (0, 0):
+                    self.vision[i].append((j + (abs(y) - env.vi), y))
 
-        def move(self, d):
-            if self.energy > 0:
-                if int(d) == 1:
-                    self.location[1] -= 1
-                elif int(d) == 2:
-                    self.location[0] += 1
-                elif int(d) == 3:
-                    self.location[1] += 1
-                elif int(d) == 4:
-                    self.location[0] -= 1
-                self.energy -= 1
+        # Vision inputs, 4 outputs for up, down, left, right. 1 for splitting.
+        self.net = ai.Network(
+            2 * env.vi * env.vi + 2 * env.vi,
+            5
+        )
+        self.net.randomize(env.entropy)
 
-        # If the creature is out of bounds, it keeps its position but puts the actual coordinates in bounds.
+    def feed(self, amount):
+        self.energy += amount
 
-        def refresh(self):
-            self.move(randint(1, 4))
+    def refresh(self):
 
-    class Food:
-        def __init__(self, x: int, y: int, value):
-            self.location = [x, y]
-            self.value = value
+        # If there is any energy left
+        if self.energy <= 0:
+            return
+
+        # Gets inputs for neural network.
+        inputs = []
+
+        for layer in self.vision:
+            for value in layer:
+                inputs.append(self.env.get(self.location[0] + value[0], self.location[1] + value[1]))
+
+        # Gets outputs and finds the one with the highest value
+        out = self.net.run(inputs)
+
+        direction = 0
+        for i in range(len(out)):
+            if out[i] > out[direction]:
+                direction = i
+        direction += 1
+
+        # This is super scuffed, but it's probably going to work. Moves the creature.
+        if direction == 1:
+            self.location[1] -= 1
+        elif direction == 2:
+            self.location[0] += 1
+        elif direction == 3:
+            self.location[1] += 1
+        elif direction == 4:
+            self.location[0] -= 1
+
+        # Deletes energy
+        self.energy -= 1
+
+        # Decides whether to split
+        if ai.step(out[4]) == 1:
+            self.energy /= 2
+            clone = deepcopy(self)
+            clone.net.randomize(self.env.entropy)
+            self.env.creatures.append(clone)
 
 
-eco = Eco(100, 10)
-eco.spawn()
-eco.main()
+class Food:
+    def __init__(self, x: int, y: int, value):
+        self.location = [x, y]
+        self.value = value
 
-# # net = ai.Network(2, 2, 10, 10, 5, 5, 4)
-# net = ai.Network(2, 2)
-# print(net)
-# print(net.run([1, 2]))
+
+# eco = Eco(100, 10)
+# eco.spawn()
+# eco.main()
